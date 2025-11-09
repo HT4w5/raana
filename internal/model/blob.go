@@ -3,6 +3,9 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -46,22 +49,50 @@ func NewBlob(cfg *config.Blob) (*Blob, error) {
 		b.blobType = t
 	}
 
+	if err := b.load(); err != nil {
+		return nil, err
+	}
+
 }
 
-func (b *Blob) loadFromLocal() error {
+// Load blob according to its type
+func (b *Blob) load() error {
 	// Parse url
 	u, err := url.Parse(b.cfg.URL)
 	if err != nil {
 		return err
 	}
 
-	if u.Scheme != "file" {
-		return errors.New("Incorrect scheme for blob type local")
-	}
-
-	dataBytes, err := os.ReadFile(u.Path)
-	if err != nil {
-		return err
+	// Fetch data according to type
+	var dataBytes []byte
+	errScheme := errors.New("incorrect scheme for blob type local")
+	switch b.blobType {
+	case TypeLocal:
+		if u.Scheme != "file" {
+			return errScheme
+		}
+		dataBytes, err = os.ReadFile(u.Path)
+		if err != nil {
+			return err
+		}
+	case TypeHTTP:
+		if u.Scheme != "http" || u.Scheme != "https" {
+			return errScheme
+		}
+		resp, err := http.Get(b.cfg.URL)
+		if err != nil {
+			return fmt.Errorf("error making HTTP request: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("bad status code: %s", resp.Status)
+		}
+		dataBytes, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("unsupported blob type")
 	}
 
 	// Determine blob format from extension and unmarshal
