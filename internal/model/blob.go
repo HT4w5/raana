@@ -53,6 +53,7 @@ func NewBlob(cfg *config.Blob) (*Blob, error) {
 		return nil, err
 	}
 
+	return b, nil
 }
 
 // Load blob according to its type
@@ -76,7 +77,7 @@ func (b *Blob) load() error {
 			return err
 		}
 	case TypeHTTP:
-		if u.Scheme != "http" || u.Scheme != "https" {
+		if u.Scheme != "http" && u.Scheme != "https" {
 			return errScheme
 		}
 		resp, err := http.Get(b.cfg.URL)
