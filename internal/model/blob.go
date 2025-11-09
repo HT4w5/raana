@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,4 +115,30 @@ func (b *Blob) load() error {
 	}
 
 	return nil
+}
+
+type BlobPool struct {
+	blobs map[string]*Blob
+}
+
+func New(cfg *config.Config) *BlobPool {
+	blobCfgs := cfg.GetAllBlobConfigs()
+	bp := &BlobPool{
+		blobs: make(map[string]*Blob, len(blobCfgs)),
+	}
+
+	for _, v := range blobCfgs {
+		b, err := NewBlob(v)
+		if err != nil {
+			log.Printf("[BlobPool] failed to fetch blob %s: %v\n", v.Tag, err)
+			continue
+		}
+		bp.blobs[v.Tag] = b
+	}
+
+	return bp
+}
+
+func (bp *BlobPool) GetBlob(tag string) *Blob {
+	return bp.blobs[tag]
 }
