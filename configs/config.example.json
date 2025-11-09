@@ -1,0 +1,12 @@
+{
+    "profiles": [
+        {
+            "tag": "profile0",
+            "overrides": [
+                "override0"
+            ],
+            "type": "remote",
+            "url": ""
+        }
+    ]
+}
