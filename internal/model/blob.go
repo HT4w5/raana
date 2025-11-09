@@ -100,11 +100,15 @@ func (b *Blob) load() error {
 	ext := filepath.Ext(u.Path)
 	switch ext {
 	case ".json":
-		json.Unmarshal(dataBytes, b.data)
+		if err := json.Unmarshal(dataBytes, &b.data); err != nil {
+			return err
+		}
 	case ".yaml":
 		fallthrough
 	case ".yml":
-		yaml.Unmarshal(dataBytes, b.data)
+		if err := yaml.Unmarshal(dataBytes, &b.data); err != nil {
+			return err
+		}
 	default:
 		return errors.New("blob format not supported")
 	}
