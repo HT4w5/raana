@@ -7,32 +7,34 @@ import (
 )
 
 type Override struct {
-	cfg      *config.Override
-	prepends []*Blob
-	appends  []*Blob
+	cfg       *config.Override
+	prepends  []*Blob
+	appends   []*Blob
+	overrides []*Blob
 }
 
 func NewOverride(cfg *config.Override, bp *BlobPool) (*Override, error) {
 	o := &Override{
-		cfg:      cfg,
-		prepends: make([]*Blob, len(cfg.Prepends)),
-		appends:  make([]*Blob, len(cfg.Appends)),
+		cfg:       cfg,
+		prepends:  make([]*Blob, len(cfg.Prepends)),
+		appends:   make([]*Blob, len(cfg.Appends)),
+		overrides: make([]*Blob, len(cfg.Overrides)),
 	}
 
-	for _, v := range cfg.Prepends {
-		b := bp.GetBlob(v)
-		if b == nil {
-			return nil, fmt.Errorf("override %s has missing blob %s", cfg.Tag, v)
-		}
-		o.prepends = append(o.prepends, b)
+	groupTagMap := map[*[]string]*[]*Blob{
+		&cfg.Prepends:  &o.prepends,
+		&cfg.Appends:   &o.appends,
+		&cfg.Overrides: &o.overrides,
 	}
 
-	for _, v := range cfg.Appends {
-		b := bp.GetBlob(v)
-		if b == nil {
-			return nil, fmt.Errorf("override %s has missing blob %s", cfg.Tag, v)
+	for strs, bs := range groupTagMap {
+		for _, v := range *strs {
+			b := bp.GetBlob(v)
+			if b == nil {
+				return nil, fmt.Errorf("override %s has missing blob %s", cfg.Tag, v)
+			}
+			*bs = append((*bs), b)
 		}
-		o.prepends = append(o.prepends, b)
 	}
 
 	return o, nil
